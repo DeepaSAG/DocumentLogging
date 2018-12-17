@@ -1,0 +1,138 @@
+Implementing User-Defined Document IDs for Broker DocumentType and JMS Messages.
+
+
+The attached sample package illustrates the approach to implement User-Defined Document IDs for native Broker Document Types and also for the JMS Message Types.
+
+
+Please follow the DocumentLogging_Usage.txt for Usage details
+
+
+
+
+Document Logging Configuration Steps:
+---------------------------------------
+
+* Native Broker Document Type
+
+	A) Integration Server is configured with JDBC Pools for IS Core Audit.
+
+	B) Integration Server is configured with Messaging -> Broker settings.
+
+	C) WmLogUtil package is enabled and Running.
+
+	D) Document Logger is enabled in the IS, mode Asynchronous
+
+	E) In MWS Administration -> Messaging -> Client Groups -> Integration Server -> Log Publish -> The document type is added to this list.
+
+	F) When we publish the document type to the Broker, we see the Last Published column gets updated. This confirms document type got published to Broker fine.
+
+	G) Document Type Logging is enabled on the Broker.
+
+	H) Navigate to MWS -> Administration -> Messaging -> Clients and look for the client's created by name ISClientPrefix_LogOnPublish and ISClientPrefix_LogOnAck.
+
+		If you would like to configure the document logging for the documents that are published to the Broker, then you need go to ISClientPrefix_LogOnPublish -> Go to Subscriptions tab, 		where you will see the list of Document types for that Broker. Pick the document type that you would like to log, and click on Add Subscription button. The Subscription column 		should be set to "yes"
+
+
+* JMS Message Type
+
+For JMS Message of type "Queue" or "Topic", unlike native broker document types, logging of JMS Message Types would vary. As there is no document type exists in the Integration Server for the JMS Messages, WmLogUtil does not have any equivalent definition type to publish to the Audit Subsystem for logging.
+
+Hence for JMS Message Types, please do the following to configure logging
+
+	A) Creating a JMS Message of type "Queue", creates a document type definition in the Broker with the prefix "JMS::QUEUES::Queue_Name", where "Queue_Name" is the name of the JMS Queue that you create.
+
+	B) Using this Broker Document Type from Step (A), Use Developer, create New -> (Select All Choices), so that the Wizard is available to create the Document Type in IS using Broker Document Type. Create a IS Document Type based on Broker Document Type "JMS::QUEUES::Queue_Name"
+
+	C) Now follow the steps under "Native Broker Document Type" with this IS Document Type.
+
+
+
+
+Pre-requisites:
+---------------
+
+1. JMS Connection Alias
+
+The sample package attached here uses a JMS Alias "BrokerJMSConnectionAlias". You may have to either edit this alias to the one that you have it configured on your IS Admin -> Settings > Messaging > JMS Settings, or configure a JMS Connection Alias Definition with the name "BrokerJMSConnectionAlias".
+
+Reference in the package where this alias "BrokerJMSConnectionAlias" is used "pub:sendJMS" service, look for "connectionAliasName" in the INVOKE STEP for "pub.jms:send" built-in service.
+
+2. JMS Queue Name
+
+The sample package attached here uses a JMS Queue name "TestQueue1". You may have to either edit this Queue Name to the one that you have it configured on your MWS -> Administration -> Messaging -> Clients -> Your JMS Client Queue Name, or create a JMS Queue by name "TestQueue1"
+
+
+
+Setting up User-Defined Document ID for Document Logging :
+----------------------------------------------------------
+
+1. In Integration Server Administrator, go to the Settings->Extended and click Edit Extended Settings. 
+
+In the Extended Settings box, set the watt.server.auditDocIdField
+property as follows:
+
+watt.server.auditDocIdField=user_defined_field
+
+The user_defined_field must be of type Broker unicode string and can be up to 128 characters long. The user_defined_field is case sensitive.
+
+2. Click Save Changes, then restart Integration Server.
+
+3. Add user_defined_field to your document types. 
+
+In this sample, the Document ID Field used is "Properties.docID1", either for native Broker document Type or JMS message type, please make sure to have "Properties" node and a "docID1" field underneath it
+
+
+Example:
+********
+
+	Properties
+		docID1
+
+
+
+ 
+
+Package Installation Steps:
+----------------------------
+
+1. If you have not already done so, follow the pre-requisites section.
+
+2. On Windows platforms, unzip DocumentLogging_Sample.zip into
+   <webMethods_directory>\IntegrationServer.
+
+   On UNIX platforms, extract the contents of
+   DocumentLogging_Sample.zip into
+   <webMethods_directory>\IntegrationServer.
+
+   To do this, use the following jar utility:
+
+   (from the IntegrationServer directory)
+   ../jvm/<platform_jvm>/bin/jar -xvf <fix_location>
+   /DocumentLogging_Sample.zip
+   
+3. In Integration Server Administrator, in the "Packages"
+   area of the navigation panel, select "Management".
+
+4. In Integration Server Administrator, in the "Packages"
+   area of the navigation panel, select "Management".
+
+5. Click "Install Inbound Releases".
+
+6. From the "Release file name" list, select
+   "DocumentLogging_Sample.zip".
+
+7. Click "Install Release".
+
+
+
+
+Test Document Logging:
+**********************
+
+1. After Installing the IS Package, make sure the Messaging settings are configured right in IS Admin.
+
+2. Send a JMS message and verify the IS server log to trace the debug messages in the Trigger Service.
+
+3. Monitor the MWS -> Monitoring -> Integration -> Documents to look for Logged Documents.
+
+4. The Document ID field should have the custom msg "MyCustomDocID" which is hardcoded in Properties -> docID1 in the jms send service.
